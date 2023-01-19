@@ -66,7 +66,7 @@ let rec read_sexp stm =
             | c -> isalpha c
     in
     let rec read_symbol () =
-        (* quote *)
+        (* escape quote char *)
         let literalQuote = String.get "\"" 0 in
         let is_delimiter = function
             | '(' | ')' | '{' | '}' | ';' -> true
