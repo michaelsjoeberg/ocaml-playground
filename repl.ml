@@ -33,6 +33,7 @@ let rec eat_whitespace stm =
 type lobject =
     | Fixnum of int
     | Boolean of bool
+    | Symbol of string
 
 (* interpreter *)
 exception SyntaxError of string;;
