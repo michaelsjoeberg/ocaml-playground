@@ -37,6 +37,8 @@ type lobject =
 
 (* interpreter *)
 exception SyntaxError of string;;
+(* alternative to Char.escaped *)
+let charToString c = String.make 1 c;;
 let rec read_sexp stm =
     (* check if char is digit *)
     let is_digit c =
@@ -53,12 +55,37 @@ let rec read_sexp stm =
             let _ = unread_char stm nc in
             Fixnum(int_of_string acc)
     in
+    (* read symbol *)
+    let is_symstartchar =
+        let isalpha = function
+            | 'A'..'Z' | 'a'..'z' -> true
+            | _ -> false
+        in
+        function
+            | '*' | '/' | '>' | '<' | '=' | '?' | '!' | '-' | '+' -> true
+            | c -> isalpha c
+    in
+    let rec read_symbol () =
+        (* quote *)
+        let literalQuote = String.get "\"" 0 in
+        let is_delimiter = function
+            | '(' | ')' | '{' | '}' | ';' -> true
+            | c when c = literalQuote -> true
+            | c -> is_white c
+        in
+        let nc = read_char stm in
+        (* concatenate chars until delimiter *)
+        if is_delimiter nc then let _ = unread_char stm nc in ""
+        else charToString nc ^ read_symbol ()
+    in
     (* remove whitespace *)
     eat_whitespace stm;
     (* read char into c *)
     let c = read_char stm in
+    (* symbol *)
+    if is_symstartchar c then Symbol (charToString c ^ read_symbol ())
     (* number : note that ~ is negation *)
-    if (is_digit c) || (c = '~') then read_fixnum (Char.escaped (if c = '~' then '-' else c))
+    else if (is_digit c) || (c = '~') then read_fixnum (Char.escaped (if c = '~' then '-' else c))
     (* boolean *)
     else if c = '#' then
         match (read_char stm) with
@@ -73,6 +100,7 @@ let rec print_sexp e =
     match e with
     | Fixnum(v) -> print_int v
     | Boolean(b) -> print_string (if b then "#t" else "#f")
+    | Symbol(s) -> print_string s
 let rec repl stm =
     print_string "> ";
     (* flush stdout to avoid print after input *)
